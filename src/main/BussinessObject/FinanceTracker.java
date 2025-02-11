@@ -25,10 +25,11 @@ public class FinanceTracker {
             System.out.println("\nChoose an option:");
             System.out.println("1. List all expenses and calculate total spend");
             System.out.println("2. Add a new expense");
-            System.out.println("3. Exit");
+            System.out.println("3. Delete an expense by ID");
+            System.out.println("4. Exit");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
@@ -38,6 +39,9 @@ public class FinanceTracker {
                     addNewExpense();
                     break;
                 case 3:
+                    deleteExpenseById();
+                    break;
+                case 4:
                     System.out.println("Exiting...");
                     return;
                 default:
@@ -46,7 +50,7 @@ public class FinanceTracker {
         }
     }
 
-    // Method to list all expenses and calculate total spend
+
     public void listAllExpenses() {
         Connection connection = null;
         try {
@@ -85,7 +89,7 @@ public class FinanceTracker {
         }
     }
 
-    // Method to add a new expense
+
     public void addNewExpense() {
         Connection connection = null;
         try {
@@ -102,13 +106,13 @@ public class FinanceTracker {
             System.out.print("Enter date incurred (YYYY-MM-DD): ");
             String dateIncurred = scanner.nextLine();
 
-            // SQL query to insert a new expense
+            // Noone reads the comments so I can write here anythyng I want to...
             String query = "INSERT INTO expense (title, category, amount, dateIncurred) VALUES (?, ?, ?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                 pstmt.setString(1, title);
                 pstmt.setString(2, category);
                 pstmt.setDouble(3, amount);
-                pstmt.setDate(4, Date.valueOf(dateIncurred)); // Convert String to SQL Date
+                pstmt.setDate(4, Date.valueOf(dateIncurred)); // Convert String to String(Joke) to Sql XD
                 pstmt.executeUpdate();
                 System.out.println("Expense added successfully!");
             }
@@ -118,6 +122,44 @@ public class FinanceTracker {
             System.out.println("SQLException: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid date format. Please use YYYY-MM-DD.");
+        } finally {
+            if (connection != null) {
+                try {
+                    dao.freeConnection(connection);
+                } catch (DaoException e) {
+                    System.out.println("Error freeing connection: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    // Method to delete an expense by ID, hope there were one to do the same to some people :(
+    public void deleteExpenseById() {
+        Connection connection = null;
+        try {
+            connection = dao.getConnection();
+
+
+            System.out.print("Enter the expense ID to delete: ");
+            int expenseID = scanner.nextInt();
+            scanner.nextLine();
+
+            // SQL query to delete the expense
+            String query = "DELETE FROM expense WHERE expenseID = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+                pstmt.setInt(1, expenseID);
+                int rowsAffected = pstmt.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    System.out.println("Expense deleted successfully!");
+                } else {
+                    System.out.println("No expense found with the given ID.");
+                }
+            }
+        } catch (DaoException e) {
+            System.out.println("DaoException: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("SQLException: " + e.getMessage());
         } finally {
             if (connection != null) {
                 try {
