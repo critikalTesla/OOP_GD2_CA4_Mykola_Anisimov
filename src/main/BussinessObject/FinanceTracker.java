@@ -27,10 +27,11 @@ public class FinanceTracker {
             System.out.println("2. Add a new expense");
             System.out.println("3. Delete an expense by ID");
             System.out.println("4. List all income and calculate total income");
-            System.out.println("5. Exit");
+            System.out.println("5. Add new income");
+            System.out.println("6. Exit");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
@@ -46,8 +47,12 @@ public class FinanceTracker {
                     listAllIncome();
                     break;
                 case 5:
+                    addNewIncome();
+                    break;
+                case 6:
                     System.out.println("Exiting...");
                     return;
+
                 default:
                     System.out.println("Invalid choice. Please try again.");
             }
@@ -146,9 +151,9 @@ public class FinanceTracker {
 
             System.out.print("Enter the expense ID to delete: ");
             int expenseID = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
-            // SQL query to delete the expense
+
             String query = "DELETE FROM expense WHERE expenseID = ?";
             try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                 pstmt.setInt(1, expenseID);
@@ -209,6 +214,45 @@ public class FinanceTracker {
             System.out.println("DaoException: " + e.getMessage());
         } catch (SQLException e) {
             System.out.println("SQLException: " + e.getMessage());
+        } finally {
+            if (connection != null) {
+                try {
+                    dao.freeConnection(connection);
+                } catch (DaoException e) {
+                    System.out.println("Error freeing connection: " + e.getMessage());
+                }
+            }
+        }
+    }
+    public void addNewIncome() {
+        Connection connection = null;
+        try {
+            connection = dao.getConnection();
+
+
+            System.out.print("Enter Income title: ");
+            String title = scanner.nextLine();
+            System.out.print("Enter income amount: ");
+            double amount = scanner.nextDouble();
+            scanner.nextLine();
+            System.out.print("Enter date (YYYY-MM-DD): ");
+            String dateEarned = scanner.nextLine();
+
+
+            String query = "INSERT INTO income (title, amount, dateEarned) VALUES (?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+                pstmt.setString(1, title);
+                pstmt.setDouble(2, amount);
+                pstmt.setDate(3, Date.valueOf(dateEarned)); // Convert String to SQL Date
+                pstmt.executeUpdate();
+                System.out.println("Income added successfully!");
+            }
+        } catch (DaoException e) {
+            System.out.println("DaoException: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("SQLException: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid date format. Please use YYYY-MM-DD.");
         } finally {
             if (connection != null) {
                 try {
