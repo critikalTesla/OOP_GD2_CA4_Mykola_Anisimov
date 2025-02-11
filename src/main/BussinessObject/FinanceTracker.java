@@ -28,7 +28,8 @@ public class FinanceTracker {
             System.out.println("3. Delete an expense by ID");
             System.out.println("4. List all income and calculate total income");
             System.out.println("5. Add new income");
-            System.out.println("6. Exit");
+            System.out.println("6. Delete an income by ID");
+            System.out.println("7. Exit");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
             scanner.nextLine();
@@ -50,6 +51,9 @@ public class FinanceTracker {
                     addNewIncome();
                     break;
                 case 6:
+                    deleteIncomeById();
+                    break;
+                case 7:
                     System.out.println("Exiting...");
                     return;
 
@@ -253,6 +257,42 @@ public class FinanceTracker {
             System.out.println("SQLException: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid date format. Please use YYYY-MM-DD.");
+        } finally {
+            if (connection != null) {
+                try {
+                    dao.freeConnection(connection);
+                } catch (DaoException e) {
+                    System.out.println("Error freeing connection: " + e.getMessage());
+                }
+            }
+        }
+    }
+    public void deleteIncomeById() {
+        Connection connection = null;
+        try {
+            connection = dao.getConnection();
+
+
+            System.out.print("Enter the Income ID to delete: ");
+            int incomeID = scanner.nextInt();
+            scanner.nextLine();
+
+
+            String query = "DELETE FROM income WHERE incomeID = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+                pstmt.setInt(1, incomeID);
+                int rowsAffected = pstmt.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    System.out.println("Income deleted successfully!");
+                } else {
+                    System.out.println("No income found with the given ID.");
+                }
+            }
+        } catch (DaoException e) {
+            System.out.println("DaoException: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("SQLException: " + e.getMessage());
         } finally {
             if (connection != null) {
                 try {
