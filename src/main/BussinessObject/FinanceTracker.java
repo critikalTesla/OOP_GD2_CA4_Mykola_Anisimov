@@ -1,23 +1,39 @@
 package main.BussinessObject;
-//@]{/Xxx_Savage_Mykola_xxX\}[@
+
+import main.DAO.ExpensesDAO;
+import main.DAO.IncomeDAO;
 import main.DAO.MySqlDao;
+import main.DAO.MySQLExpensesDAO;
+import main.DAO.MySQLIncomeDAO;
+import main.DTO.Expense;
+import main.DTO.Income;
 import main.Exceptions.DaoException;
-import java.sql.*;
+import java.sql.Connection;
+import java.util.List;
 import java.util.Scanner;
 
 public class FinanceTracker {
 
     private MySqlDao dao;
+    private MySQLExpensesDAO expensesDAO;
+    private MySQLIncomeDAO incomeDAO;
     private Scanner scanner;
 
-    public FinanceTracker() {
+    public FinanceTracker() throws DaoException {
         dao = new MySqlDao();
+        Connection connection = dao.getConnection();
+        expensesDAO = new MySQLExpensesDAO(connection);
+        incomeDAO = new MySQLIncomeDAO(connection);
         scanner = new Scanner(System.in);
     }
 
     public static void main(String[] args) {
-        FinanceTracker tracker = new FinanceTracker();
-        tracker.run();
+        try {
+            FinanceTracker tracker = new FinanceTracker();
+            tracker.run();
+        } catch (DaoException e) {
+            System.out.println("Error initializing FinanceTracker: " + e.getMessage());
+        }
     }
 
     public void run() {
@@ -33,359 +49,157 @@ public class FinanceTracker {
             System.out.println("8. Exit");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
-
-            switch (choice) {
-                case 1:
-                    listAllExpenses();
-                    break;
-                case 2:
-                    addNewExpense();
-                    break;
-                case 3:
-                    deleteExpenseById();
-                    break;
-                case 4:
-                    listAllIncome();
-                    break;
-                case 5:
-                    addNewIncome();
-                    break;
-                case 6:
-                    deleteIncomeById();
-                    break;
-                case 7:
-                    listIncomeAndExpensesForMonth();
-                    break;
-                case 8:
-                    System.out.println("Exiting...");
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        }
-    }
-
-
-    public void listAllExpenses() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
-            String query = "SELECT * FROM expense";
-            try (Statement stmt = connection.createStatement();
-                 ResultSet rs = stmt.executeQuery(query)) {
-
-                double totalSpend = 0;
-                System.out.println("\nExpenses:");
-                while (rs.next()) {
-                    int expenseID = rs.getInt("expenseID");
-                    String title = rs.getString("title");
-                    String category = rs.getString("category");
-                    double amount = rs.getDouble("amount");
-                    Date dateIncurred = rs.getDate("dateIncurred");
-
-                    System.out.printf("ID: %d, Title: %s, Category: %s, Amount: €%.2f, Date: %s%n",
-                            expenseID, title, category, amount, dateIncurred);
-                    totalSpend += amount;
-                }
-                System.out.printf("Total Spend: €%.2f%n", totalSpend);
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
-        }
-    }
-
-
-    public void addNewExpense() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
-
-
-            System.out.print("Enter expense title: ");
-            String title = scanner.nextLine();
-            System.out.print("Enter expense category: ");
-            String category = scanner.nextLine();
-            System.out.print("Enter expense amount: ");
-            double amount = scanner.nextDouble();
-            scanner.nextLine(); // Consume newline
-            System.out.print("Enter date incurred (YYYY-MM-DD): ");
-            String dateIncurred = scanner.nextLine();
-
-
-            String query = "INSERT INTO expense (title, category, amount, dateIncurred) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-                pstmt.setString(1, title);
-                pstmt.setString(2, category);
-                pstmt.setDouble(3, amount);
-                pstmt.setDate(4, Date.valueOf(dateIncurred)); // Convert String to SQL Date
-                pstmt.executeUpdate();
-                System.out.println("Expense added successfully!");
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid date format. Please use YYYY-MM-DD.");
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
-        }
-    }
-
-
-    public void deleteExpenseById() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
-
-
-            System.out.print("Enter the expense ID to delete: ");
-            int expenseID = scanner.nextInt();
             scanner.nextLine();
 
-
-            String query = "DELETE FROM expense WHERE expenseID = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-                pstmt.setInt(1, expenseID);
-                int rowsAffected = pstmt.executeUpdate();
-
-                if (rowsAffected > 0) {
-                    System.out.println("Expense deleted successfully!");
-                } else {
-                    System.out.println("No expense found with the given ID.");
+            try {
+                switch (choice) {
+                    case 1:
+                        listAllExpenses();
+                        break;
+                    case 2:
+                        addNewExpense();
+                        break;
+                    case 3:
+                        deleteExpenseById();
+                        break;
+                    case 4:
+                        listAllIncome();
+                        break;
+                    case 5:
+                        addNewIncome();
+                        break;
+                    case 6:
+                        deleteIncomeById();
+                        break;
+                    case 7:
+                        listIncomeAndExpensesForMonth();
+                        break;
+                    case 8:
+                        System.out.println("Exiting...");
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
                 }
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
+            } catch (DaoException e) {
+                System.out.println("Error: " + e.getMessage());
             }
         }
     }
 
-
-    public void listAllIncome() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
-
-
-            String query = "SELECT * FROM income";
-            try (Statement stmt = connection.createStatement();
-                 ResultSet rs = stmt.executeQuery(query)) {
-
-                double totalIncome = 0;
-                System.out.println("\nIncome:");
-                while (rs.next()) {
-                    int incomeID = rs.getInt("incomeID");
-                    String title = rs.getString("title");
-                    double amount = rs.getDouble("amount");
-                    Date dateEarned = rs.getDate("dateEarned");
-
-
-                    System.out.printf("ID: %d, Title: %s, Amount: €%.2f, Date: %s%n",
-                            incomeID, title, amount, dateEarned);
-
-
-                    totalIncome += amount;
-                }
-
-
-                System.out.printf("Total Income: €%.2f%n", totalIncome);
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
+    private void listAllExpenses() throws DaoException {
+        List<Expense> expenses = expensesDAO.findAllExpenses();
+        double totalSpend = 0;
+        System.out.println("\nExpenses:");
+        for (Expense expense : expenses) {
+            System.out.printf("ID: %d, Title: %s, Category: %s, Amount: €%.2f, Date: %s%n",
+                    expense.getExpenseID(), expense.getTitle(), expense.getCategory(),
+                    expense.getAmount(), expense.getDateIncurred());
+            totalSpend += expense.getAmount();
         }
+        System.out.printf("Total Spend: €%.2f%n", totalSpend);
     }
-    public void addNewIncome() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
 
+    private void addNewExpense() throws DaoException {
+        System.out.print("Enter expense title: ");
+        String title = scanner.nextLine();
+        System.out.print("Enter expense category: ");
+        String category = scanner.nextLine();
+        System.out.print("Enter expense amount: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine();
+        System.out.print("Enter date incurred (YYYY-MM-DD): ");
+        String dateIncurred = scanner.nextLine();
 
-            System.out.print("Enter Income title: ");
-            String title = scanner.nextLine();
-            System.out.print("Enter income amount: ");
-            double amount = scanner.nextDouble();
-            scanner.nextLine();
-            System.out.print("Enter date (YYYY-MM-DD): ");
-            String dateEarned = scanner.nextLine();
+        Expense expense = new Expense();
+        expense.setTitle(title);
+        expense.setCategory(category);
+        expense.setAmount(amount);
+        expense.setDateIncurred(java.sql.Date.valueOf(dateIncurred));
 
-
-            String query = "INSERT INTO income (title, amount, dateEarned) VALUES (?, ?, ?)";
-            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-                pstmt.setString(1, title);
-                pstmt.setDouble(2, amount);
-                pstmt.setDate(3, Date.valueOf(dateEarned)); // Convert String to SQL Date
-                pstmt.executeUpdate();
-                System.out.println("Income added successfully!");
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid date format. Please use YYYY-MM-DD.");
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
-        }
+        expensesDAO.addExpense(expense);
+        System.out.println("Expense added successfully!");
     }
-    public void deleteIncomeById() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
 
+    private void deleteExpenseById() throws DaoException {
+        System.out.print("Enter the expense ID to delete: ");
+        int expenseID = scanner.nextInt();
+        scanner.nextLine();
 
-            System.out.print("Enter the Income ID to delete: ");
-            int incomeID = scanner.nextInt();
-            scanner.nextLine();
-
-
-            String query = "DELETE FROM income WHERE incomeID = ?";
-            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-                pstmt.setInt(1, incomeID);
-                int rowsAffected = pstmt.executeUpdate();
-
-                if (rowsAffected > 0) {
-                    System.out.println("Income deleted successfully!");
-                } else {
-                    System.out.println("No income found with the given ID.");
-                }
-            }
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
-        }
+        expensesDAO.deleteExpenseById(expenseID);
+        System.out.println("Expense deleted successfully!");
     }
-    //So we need to input the Month, compare this with the month from data base
-    //and if they are identical- output all other stuff
-    public void listIncomeAndExpensesForMonth() {
-        Connection connection = null;
-        try {
-            connection = dao.getConnection();
 
-
-            System.out.print("Enter the month (MM): ");
-            int month = scanner.nextInt();
-            scanner.nextLine();
-
-            // I feel pain in my brain because of it (@_@)
-            String startDate = String.format("2025-%02d-01", month); // First day of the month
-            String endDate = String.format("2025-%02d-31", month);   // Last day of the month
-
-            // So we made an borders for our month dates here and now we are gonna call the data from the tables
-            //from Income table
-            double totalIncome = 0;
-            String incomeQuery = "SELECT * FROM income WHERE dateEarned BETWEEN ? AND ?";
-            try (PreparedStatement incomeStmt = connection.prepareStatement(incomeQuery)) {
-                incomeStmt.setString(1, startDate);
-                incomeStmt.setString(2, endDate);
-                try (ResultSet incomeRs = incomeStmt.executeQuery()) {
-                    System.out.println("\nIncome for: " + month + ":");
-                    while (incomeRs.next()) {
-                        int incomeID = incomeRs.getInt("incomeID");
-                        String title = incomeRs.getString("title");
-                        double amount = incomeRs.getDouble("amount");
-                        Date dateEarned = incomeRs.getDate("dateEarned");
-
-                        System.out.printf("ID: %d, Title: %s, Amount: €%.2f, Date: %s%n",
-                                incomeID, title, amount, dateEarned);
-                        totalIncome += amount;
-                    }
-                    System.out.printf("Total Income: €%.2f%n", totalIncome);
-                }
-            }
-
-            // I don't want to do such things ;_;
-            //The same for Expenses
-            double totalExpenses = 0;
-            String expenseQuery = "SELECT * FROM expense WHERE dateIncurred BETWEEN ? AND ?";
-            try (PreparedStatement expenseStmt = connection.prepareStatement(expenseQuery)) {
-                expenseStmt.setString(1, startDate);
-                expenseStmt.setString(2, endDate);
-                try (ResultSet expenseRs = expenseStmt.executeQuery()) {
-                    System.out.println("\nExpenses for: " + month + ":");
-                    while (expenseRs.next()) {
-                        int expenseID = expenseRs.getInt("expenseID");
-                        String title = expenseRs.getString("title");
-                        String category = expenseRs.getString("category");
-                        double amount = expenseRs.getDouble("amount");
-                        Date dateIncurred = expenseRs.getDate("dateIncurred");
-
-                        System.out.printf("ID: %d, Title: %s, Category: %s, Amount: €%.2f, Date: %s%n",
-                                expenseID, title, category, amount, dateIncurred);
-                        totalExpenses += amount;
-                    }
-                    System.out.printf("Total Expenses: €%.2f%n", totalExpenses);
-                }
-            }
-
-
-            double remainingBalance = totalIncome - totalExpenses;
-            System.out.printf("\nRemaining Balance: €%.2f%n", remainingBalance);
-
-        } catch (DaoException e) {
-            System.out.println("DaoException: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("SQLException: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                try {
-                    dao.freeConnection(connection);
-                } catch (DaoException e) {
-                    System.out.println("Error freeing connection: " + e.getMessage());
-                }
-            }
+    private void listAllIncome() throws DaoException {
+        List<Income> incomeList = incomeDAO.findAllIncome();
+        double totalIncome = 0;
+        System.out.println("\nIncome:");
+        for (Income income : incomeList) {
+            System.out.printf("ID: %d, Title: %s, Amount: €%.2f, Date: %s%n",
+                    income.getIncomeID(), income.getTitle(), income.getAmount(), income.getDateEarned());
+            totalIncome += income.getAmount();
         }
+        System.out.printf("Total Income: €%.2f%n", totalIncome);
+    }
+
+    private void addNewIncome() throws DaoException {
+        System.out.print("Enter income title: ");
+        String title = scanner.nextLine();
+        System.out.print("Enter income amount: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine();
+        System.out.print("Enter date earned (YYYY-MM-DD): ");
+        String dateEarned = scanner.nextLine();
+
+        Income income = new Income();
+        income.setTitle(title);
+        income.setAmount(amount);
+        income.setDateEarned(java.sql.Date.valueOf(dateEarned));
+
+        incomeDAO.addIncome(income);
+        System.out.println("Income added successfully!");
+    }
+
+    private void deleteIncomeById() throws DaoException {
+        System.out.print("Enter the income ID to delete: ");
+        int incomeID = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        incomeDAO.deleteIncomeById(incomeID);
+        System.out.println("Income deleted successfully!");
+    }
+
+    private void listIncomeAndExpensesForMonth() throws DaoException {
+        System.out.print("Enter the year (YYYY): ");
+        int year = scanner.nextInt();
+        System.out.print("Enter the month (MM): ");
+        int month = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        // Fetch income for the month
+        List<Income> incomeList = incomeDAO.findIncomeForMonth(year, month);
+        double totalIncome = 0;
+        System.out.println("\nIncome for " + year + "-" + month + ":");
+        for (Income income : incomeList) {
+            System.out.printf("ID: %d, Title: %s, Amount: €%.2f, Date: %s%n",
+                    income.getIncomeID(), income.getTitle(), income.getAmount(), income.getDateEarned());
+            totalIncome += income.getAmount();
+        }
+        System.out.printf("Total Income: €%.2f%n", totalIncome);
+
+        // Fetch expenses for the month
+        List<Expense> expenses = expensesDAO.findExpensesForMonth(year, month);
+        double totalExpenses = 0;
+        System.out.println("\nExpenses for " + year + "-" + month + ":");
+        for (Expense expense : expenses) {
+            System.out.printf("ID: %d, Title: %s, Category: %s, Amount: €%.2f, Date: %s%n",
+                    expense.getExpenseID(), expense.getTitle(), expense.getCategory(),
+                    expense.getAmount(), expense.getDateIncurred());
+            totalExpenses += expense.getAmount();
+        }
+        System.out.printf("Total Expenses: €%.2f%n", totalExpenses);
+
+
+        double remainingBalance = totalIncome - totalExpenses;
+        System.out.printf("\nRemaining Balance: €%.2f%n", remainingBalance);
     }
 }
-//I don't want to explain all the stuff ;_;

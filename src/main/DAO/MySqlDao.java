@@ -16,9 +16,7 @@ public class MySqlDao {
         Connection connection = null;
 
         try {
-            // Load the MySQL JDBC driver
             Class.forName(driver);
-            // Establish the connection
             connection = DriverManager.getConnection(url, username, password);
         } catch (ClassNotFoundException e) {
             throw new DaoException("Failed to find driver class: " + e.getMessage());

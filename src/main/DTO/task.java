@@ -39,7 +39,7 @@ public class task {
 
     private String title;
     private String tag;
-    private Date date; //should be date ;
+    private Date date;
 
 
 

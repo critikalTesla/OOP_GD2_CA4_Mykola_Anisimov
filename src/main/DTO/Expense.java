@@ -9,7 +9,7 @@ public class Expense {
     private double amount;
     private Date dateIncurred;
 
-
+    // Getters and Setters
     public int getExpenseID() {
         return expenseID;
     }
